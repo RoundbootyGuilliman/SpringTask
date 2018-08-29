@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ResponseStatus(HttpStatus.NOT_FOUND)
 public class ProductNotFoundException extends RuntimeException {
 	
-	public ProductNotFoundException(int bookmarkId) {
-		super("PRODUCT #" + bookmarkId + " NOT FOUND");
+	public ProductNotFoundException(int productId) {
+		super("PRODUCT #" + productId + " NOT FOUND");
 	}
 }

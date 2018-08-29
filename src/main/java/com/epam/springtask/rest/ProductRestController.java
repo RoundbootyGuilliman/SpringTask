@@ -24,14 +24,15 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 @RequestMapping("/products")
 public class ProductRestController {
 	
-	@Autowired
-	private JmsTemplate jmsTemplate;
+	private final JmsTemplate jmsTemplate;
+	private final ProductRepository productRepository;
+	private final UserRepository userRepository;
 	
-	@Autowired
-	private ProductRepository productRepository;
-	
-	@Autowired
-	private UserRepository userRepository;
+	public ProductRestController(JmsTemplate jmsTemplate, ProductRepository productRepository, UserRepository userRepository) {
+		this.jmsTemplate = jmsTemplate;
+		this.productRepository = productRepository;
+		this.userRepository = userRepository;
+	}
 	
 	private static Resource<Product> toResource(Product product, String username) {
 		return new Resource<>(product,

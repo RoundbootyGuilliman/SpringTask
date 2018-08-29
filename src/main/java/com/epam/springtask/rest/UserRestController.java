@@ -4,7 +4,6 @@ import com.epam.springtask.dao.UserRepository;
 import com.epam.springtask.entity.User;
 import com.epam.springtask.exception.UserExistsException;
 import com.epam.springtask.exception.UserNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.Resource;
@@ -24,11 +23,13 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 @RequestMapping("/users")
 public class UserRestController {
 	
-	@Autowired
-	private JmsTemplate jmsTemplate;
+	private final JmsTemplate jmsTemplate;
+	private final UserRepository userRepository;
 	
-	@Autowired
-	private UserRepository userRepository;
+	public UserRestController(JmsTemplate jmsTemplate, UserRepository userRepository) {
+		this.jmsTemplate = jmsTemplate;
+		this.userRepository = userRepository;
+	}
 	
 	private static Resource<User> toResource(User user) {
 		return new Resource<>(user,
