@@ -23,6 +23,10 @@ public class Product {
 		this.owner = owner;
 	}
 	
+	public static Product from(User user, Product product) {
+		return new Product(product.name, user);
+	}
+	
 	public int getId() {
 		return id;
 	}
@@ -45,5 +49,14 @@ public class Product {
 	
 	public void setOwner(User owner) {
 		this.owner = owner;
+	}
+	
+	@Override
+	public String toString() {
+		return "Product{" +
+				"id=" + id +
+				", name='" + name + '\'' +
+				", owner=" + owner +
+				'}';
 	}
 }
