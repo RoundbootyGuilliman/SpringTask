@@ -4,14 +4,17 @@ import com.epam.springtask.dao.UserRepository;
 import com.epam.springtask.entity.User;
 import com.epam.springtask.exception.UserExistsException;
 import com.epam.springtask.exception.UserNotFoundException;
+import com.epam.springtask.util.EntityValidator;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jms.core.JmsTemplate;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.net.URI;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -72,14 +75,29 @@ public class UserRestController {
 	}
 	
 	@PostMapping
-	public ResponseEntity<?> postUser(@RequestBody User input) {
+	public ResponseEntity<?> postUser(@Valid @RequestBody User input, BindingResult result) {
 		
+		EntityValidator.checkForErrors(result);
 		validateUniqueness(input.getName());
 		
-		return ResponseEntity.created(
-				URI.create(toResource(userRepository.save(input))
-						.getLink(Link.REL_SELF)
-						.getHref()))
+		return ResponseEntity
+				.created(
+						URI.create(toResource(userRepository.save(input))
+								.getLink(Link.REL_SELF)
+								.getHref()))
 				.build();
+	}
+	
+	@PutMapping(value = "/{username}")
+	public ResponseEntity<?> putUser(@PathVariable String username, @Valid @RequestBody User input, BindingResult result) {
+		
+		EntityValidator.checkForErrors(result);
+		validateUser(username);
+		
+		input.setId(userRepository.findByName(username).get().getId());
+		
+		userRepository.save(input);
+		
+		return ResponseEntity.ok().build();
 	}
 }

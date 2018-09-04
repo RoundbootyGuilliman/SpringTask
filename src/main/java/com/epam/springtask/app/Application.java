@@ -27,7 +27,6 @@ import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
-
 import javax.jms.ConnectionFactory;
 import java.util.Arrays;
 
@@ -37,10 +36,13 @@ import java.util.Arrays;
 @ComponentScan("com.epam.springtask")
 @EnableJpaRepositories("com.epam.springtask.dao")
 @EntityScan("com.epam.springtask.entity")
-
 public class Application {
 	
 	private static final Logger log = LoggerFactory.getLogger(Application.class);
+	
+	public static void main(String[] args) {
+		SpringApplication.run(Application.class, args);
+	}
 	
 	@Bean
 	public CommandLineRunner init(UserRepository userRepository, ProductRepository productRepository) {
@@ -51,7 +53,7 @@ public class Application {
 			
 			Arrays.asList("Bob", "Rob", "Tom")
 					.forEach(username -> {
-						User user = userRepository.save(new User(username, "password", Role.USER));
+						User user = userRepository.save(new User(username, "password", Role.ADMIN));
 						productRepository.save(new Product("Product 1", user));
 						productRepository.save(new Product("Product 2", user));
 					});
@@ -83,9 +85,5 @@ public class Application {
 				.apis(RequestHandlerSelectors.any())
 				.paths(PathSelectors.any())
 				.build();
-	}
-	
-	public static void main(String[] args) {
-		SpringApplication.run(Application.class, args);
 	}
 }

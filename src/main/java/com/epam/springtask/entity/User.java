@@ -1,9 +1,12 @@
 package com.epam.springtask.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.epam.springtask.validation.ValidPassword;
+import com.epam.springtask.validation.ValidUsername;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotEmpty;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,13 +14,22 @@ import java.util.List;
 @Table(name = "users")
 public class User {
 	
-	@Id @GeneratedValue
+	@Id
+	@GeneratedValue
 	private int id;
+	
+	@NotEmpty(message = "{valid.notEmpty}")
+	@ValidUsername(message = "{valid.username}")
 	private String name;
-	@JsonIgnore
+	
+	@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+	@NotEmpty(message = "{valid.notEmpty}")
+	@ValidPassword(message = "{valid.password}")
 	private String password;
+	
 	@Enumerated(EnumType.STRING)
 	private Role role;
+	
 	@OneToMany(mappedBy = "owner")
 	@JsonIgnoreProperties("owner")
 	private List<Product> products;

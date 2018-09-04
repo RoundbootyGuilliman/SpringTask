@@ -1,8 +1,10 @@
 package com.epam.springtask.entity;
 
+import com.epam.springtask.validation.ValidProductName;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotEmpty;
 
 @Entity
 @Table(name = "products")
@@ -10,6 +12,8 @@ public class Product {
 	
 	@Id @GeneratedValue
 	private int id;
+	@NotEmpty(message = "{valid.notEmpty}")
+	@ValidProductName(message = "{valid.productName}")
 	private String name;
 	@ManyToOne
 	@JsonIgnoreProperties("products")

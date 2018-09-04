@@ -5,15 +5,17 @@ import com.epam.springtask.dao.UserRepository;
 import com.epam.springtask.entity.Product;
 import com.epam.springtask.exception.ProductNotFoundException;
 import com.epam.springtask.exception.UserNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.epam.springtask.util.EntityValidator;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jms.core.JmsTemplate;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.net.URI;
 import java.util.stream.Collectors;
 
@@ -69,8 +71,10 @@ public class ProductRestController {
 	}
 	
 	@PostMapping("/{username}")
-	public ResponseEntity<?> postProduct(@PathVariable String username, @RequestBody Product input) {
+	public ResponseEntity<?> postProduct(@PathVariable String username,
+										 @Valid @RequestBody Product input, BindingResult result) {
 		
+		EntityValidator.checkForErrors(result);
 		validateUser(username);
 		
 		return userRepository
@@ -83,5 +87,19 @@ public class ProductRestController {
 										.getHref()))
 						.build())
 				.orElse(ResponseEntity.noContent().build());
+	}
+	
+	@PutMapping("/{username}/{productId}")
+	public ResponseEntity<?> putProduct(@PathVariable String username, @PathVariable int productId,
+										@Valid @RequestBody Product input, BindingResult result) {
+		
+		EntityValidator.checkForErrors(result);
+		validateUser(username);
+		
+		input.setId(productId);
+		
+		productRepository.save(input);
+		
+		return ResponseEntity.ok().build();
 	}
 }
