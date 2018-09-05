@@ -38,7 +38,7 @@ import java.util.Arrays;
 @EntityScan("com.epam.springtask.entity")
 public class Application {
 	
-	private static final Logger log = LoggerFactory.getLogger(Application.class);
+	private static final Logger logger = LoggerFactory.getLogger(Application.class);
 	
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);
@@ -48,12 +48,14 @@ public class Application {
 	public CommandLineRunner init(UserRepository userRepository, ProductRepository productRepository) {
 		return (args) -> {
 			
+			logger.debug("Deleting all from products and users tables");
 			productRepository.deleteAll();
 			userRepository.deleteAll();
 			
+			logger.debug("Populating tables with mock users and products");
 			Arrays.asList("Bob", "Rob", "Tom")
 					.forEach(username -> {
-						User user = userRepository.save(new User(username, "password", Role.ADMIN));
+						User user = userRepository.save(new User(username, "aaaa", Role.ADMIN));
 						productRepository.save(new Product("Product 1", user));
 						productRepository.save(new Product("Product 2", user));
 					});
@@ -63,6 +65,8 @@ public class Application {
 	@Bean
 	public JmsListenerContainerFactory<?> myFactory(ConnectionFactory connectionFactory,
 													DefaultJmsListenerContainerFactoryConfigurer configurer) {
+		
+		logger.debug("Configuring JmsListenerContainerFactory");
 		DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
 		
 		configurer.configure(factory, connectionFactory);
@@ -72,6 +76,8 @@ public class Application {
 	
 	@Bean
 	public MessageConverter jacksonJmsMessageConverter() {
+		
+		logger.debug("Configuring jacksonJmsMessageConverter");
 		MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
 		converter.setTargetType(MessageType.TEXT);
 		converter.setTypeIdPropertyName("_type");
@@ -80,6 +86,8 @@ public class Application {
 	
 	@Bean
 	public Docket api() {
+		
+		logger.debug("Configuring docket, DocumentationType=SWAGGER_2");
 		return new Docket(DocumentationType.SWAGGER_2)
 				.select()
 				.apis(RequestHandlerSelectors.any())

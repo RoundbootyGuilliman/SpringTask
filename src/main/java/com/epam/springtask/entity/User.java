@@ -4,6 +4,8 @@ import com.epam.springtask.validation.ValidPassword;
 import com.epam.springtask.validation.ValidUsername;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
@@ -13,6 +15,8 @@ import java.util.List;
 @Entity
 @Table(name = "users")
 public class User {
+	
+	private static final Logger logger = LoggerFactory.getLogger(User.class);
 	
 	@Id
 	@GeneratedValue
@@ -35,9 +39,11 @@ public class User {
 	private List<Product> products;
 	
 	public User() {
+		logger.trace("Creating User instance via default constructor");
 	}
 	
 	public User(String name, String password, Role role) {
+		logger.trace("Creating User instance via constructor with " + name + " as name and " + role + " as role");
 		this.name = name;
 		this.password = password;
 		this.role = role;

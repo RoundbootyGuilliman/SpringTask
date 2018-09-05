@@ -2,6 +2,8 @@ package com.epam.springtask.security;
 
 import com.epam.springtask.dao.UserRepository;
 import com.epam.springtask.entity.Role;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -16,11 +18,15 @@ import java.util.List;
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 	
+	private static final Logger logger = LoggerFactory.getLogger(UserDetailsServiceImpl.class);
+	
 	@Autowired
 	private UserRepository userRepository;
 	
 	@Override
 	public UserDetails loadUserByUsername(String username) {
+		
+		logger.debug("Loading user by username \"" + username + "\"");
 		
 		com.epam.springtask.entity.User user = userRepository.findByName(username).get();
 		
@@ -32,6 +38,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 	}
 	
 	private User buildUserForAuthentication(com.epam.springtask.entity.User user, List<GrantedAuthority> authorities) {
+		
+		logger.debug("Building user " + user.getName() + " for authentication with role " + user.getRole());
 		
 		boolean isEnabled = true;
 		boolean isAccountNonExpired = true;

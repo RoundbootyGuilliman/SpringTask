@@ -1,7 +1,10 @@
 package com.epam.springtask.entity;
 
+import com.epam.springtask.app.Application;
 import com.epam.springtask.validation.ValidProductName;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
@@ -9,6 +12,8 @@ import javax.validation.constraints.NotEmpty;
 @Entity
 @Table(name = "products")
 public class Product {
+	
+	private static final Logger logger = LoggerFactory.getLogger(Product.class);
 	
 	@Id @GeneratedValue
 	private int id;
@@ -20,15 +25,18 @@ public class Product {
 	private User owner;
 	
 	public Product() {
+		logger.trace("Creating Product instance via default constructor");
 	}
 	
 	public Product(String name, User owner) {
+		logger.trace("Creating Product instance via constructor with " + name + " as name and " + owner.getName() + " as owner");
 		this.name = name;
 		this.owner = owner;
 	}
 	
-	public static Product from(User user, Product product) {
-		return new Product(product.name, user);
+	public static Product from(User owner, Product product) {
+		logger.trace("Creating Product instance via static method with " + product.getName() + " as name and " + owner.getName() + " as owner");
+		return new Product(product.name, owner);
 	}
 	
 	public int getId() {
