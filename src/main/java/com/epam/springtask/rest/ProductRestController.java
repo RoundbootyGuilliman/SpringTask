@@ -86,17 +86,14 @@ public class ProductRestController {
 		Validator.checkForErrors(result);
 		Validator.validateUser(username);
 		
-		logger.debug("User and entity are valid, persisting new product \"" + input.getName() + "\" to the database");
-		return userRepository
-				.findByName(username)
-				.map(user -> ResponseEntity.created(
-						URI.create(
-								toResource(
-										productRepository.save(Product.from(user, input)))
-										.getLink(Link.REL_SELF)
-										.getHref()))
-						.build())
-				.orElse(ResponseEntity.noContent().build());
+		logger.debug("User and entity are valid, sending a JMS message with the new product \"" + input.getName() + "\" for persisting");
+		jmsTemplate.convertAndSend("mailbox",
+				Product.from(userRepository.findByName(username).get(), input), message -> {
+					message.setJMSType("Product");
+					return message;
+				});
+		
+		return ResponseEntity.ok().build();
 	}
 	
 	@PutMapping("/{username}/{productId}")
@@ -108,6 +105,7 @@ public class ProductRestController {
 		Validator.checkForErrors(result);
 		Validator.validateUser(username);
 		
+		logger.debug("Checking if product #" + productId + " exists");
 		productRepository.findByOwnerNameAndId(username, productId)
 				.orElseThrow(() -> {
 					logger.error("ProductNotFoundException has been thrown: product #" + productId +
@@ -115,9 +113,14 @@ public class ProductRestController {
 					return new ProductNotFoundException(productId, username);
 				});
 		
-		logger.debug("Username, product ID and entity are valid, updating product #" + productId + " in the database");
+		logger.debug("Username, product ID and entity are valid, sending a JMS message with product #" + productId + " for updating");
 		input.setId(productId);
-		productRepository.save(Product.from(productId, userRepository.findByName(username).get(), input));
+		
+		jmsTemplate.convertAndSend("mailbox",
+				Product.from(productId, userRepository.findByName(username).get(), input), message -> {
+			message.setJMSType("Product");
+			return message;
+		});
 		
 		return ResponseEntity.ok().build();
 	}

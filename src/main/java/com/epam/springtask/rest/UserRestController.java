@@ -5,7 +5,6 @@ import com.epam.springtask.entity.User;
 import com.epam.springtask.util.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
@@ -15,7 +14,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.net.URI;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -72,13 +70,13 @@ public class UserRestController {
 		Validator.checkForErrors(result);
 		Validator.validateUniqueness(input.getName());
 		
-		logger.debug("Username and entity are valid, persisting new user \"" + input.getName() + "\" to the database");
-		return ResponseEntity
-				.created(
-						URI.create(toResource(userRepository.save(input))
-								.getLink(Link.REL_SELF)
-								.getHref()))
-				.build();
+		logger.debug("Username and entity are valid, sending a JMS message with the new user \"" + input.getName() + "\" for persisting");
+		jmsTemplate.convertAndSend("mailbox", input, message -> {
+			message.setJMSType("User");
+			return message;
+		});
+		
+		return ResponseEntity.ok().build();
 	}
 	
 	@PutMapping(value = "/{username}")
@@ -88,9 +86,13 @@ public class UserRestController {
 		Validator.checkForErrors(result);
 		Validator.validateUser(username);
 		
-		logger.debug("Username and entity are valid, updating user \"" + username + "\" in the database");
+		logger.debug("Username and entity are valid, sending a JMS message with the user \"" + username + "\" for updating");
 		input.setId(userRepository.findByName(username).get().getId());
-		userRepository.save(input);
+		
+		jmsTemplate.convertAndSend("mailbox", input, message -> {
+			message.setJMSType("User");
+			return message;
+		});
 		
 		return ResponseEntity.ok().build();
 	}
