@@ -9,4 +9,8 @@ public class ProductNotFoundException extends RuntimeException {
 	public ProductNotFoundException(int productId) {
 		super("PRODUCT #" + productId + " NOT FOUND");
 	}
+	
+	public ProductNotFoundException(int productId, String username) {
+		super("PRODUCT #" + productId + " NOT FOUND IN " + username + "'S PRODUCTS");
+	}
 }

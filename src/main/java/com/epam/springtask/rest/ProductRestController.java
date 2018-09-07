@@ -13,6 +13,7 @@ import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jms.core.JmsTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,12 +40,12 @@ public class ProductRestController {
 		this.userRepository = userRepository;
 	}
 	
-	private static Resource<Product> toResource(Product product, String username) {
-		logger.trace("Turning " + username + "'s \"" + product.getName() + "\" product into resource with static toResource method");
+	private static Resource<Product> toResource(Product product) {
+		logger.trace("Wrapping " + product.getOwner().getName() + "'s \"" + product.getName() + "\" product in Resource and adding links");
 		return new Resource<>(product,
-				linkTo(methodOn(UserRestController.class).getUserByUsername(username)).withRel("user"),
-				linkTo(methodOn(ProductRestController.class).getProductsByUser(username)).withRel("products"),
-				linkTo(methodOn(ProductRestController.class).getProductByUserAndId(username, product.getId())).withSelfRel());
+				linkTo(methodOn(UserRestController.class).getUserByUsername(product.getOwner().getName())).withRel("user"),
+				linkTo(methodOn(ProductRestController.class).getProductsByUser(product.getOwner().getName())).withRel("products"),
+				linkTo(methodOn(ProductRestController.class).getProductByUserAndId(product.getOwner().getName(), product.getId())).withSelfRel());
 	}
 	
 	@GetMapping(value = "/{username}", produces = MediaTypes.HAL_JSON_VALUE)
@@ -56,7 +57,7 @@ public class ProductRestController {
 		logger.debug("User is valid, returning all corresponding resources");
 		return new Resources<>(productRepository
 				.findByOwnerName(username).stream()
-				.map(product -> toResource(product, username))
+				.map(ProductRestController::toResource)
 				.collect(Collectors.toList()));
 	}
 	
@@ -68,11 +69,12 @@ public class ProductRestController {
 		
 		logger.debug("User is valid, returning corresponding resource with product #" + productId);
 		return productRepository
-				.findById(productId)
-				.map(product -> toResource(product, username))
+				.findByOwnerNameAndId(username, productId)
+				.map(ProductRestController::toResource)
 				.orElseThrow(() -> {
-					logger.error("ProductNotFoundException has been thrown: product #" + productId + " not found");
-					return new ProductNotFoundException(productId);
+					logger.error("ProductNotFoundException has been thrown: product #" + productId +
+							" not found in " + username + "'s products");
+					return new ProductNotFoundException(productId, username);
 				});
 	}
 	
@@ -90,7 +92,7 @@ public class ProductRestController {
 				.map(user -> ResponseEntity.created(
 						URI.create(
 								toResource(
-										productRepository.save(Product.from(user, input)), username)
+										productRepository.save(Product.from(user, input)))
 										.getLink(Link.REL_SELF)
 										.getHref()))
 						.build())
@@ -98,6 +100,7 @@ public class ProductRestController {
 	}
 	
 	@PutMapping("/{username}/{productId}")
+	@PreAuthorize("hasPermission(#username, '')")
 	public ResponseEntity<?> putProduct(@PathVariable String username, @PathVariable int productId,
 										@Valid @RequestBody Product input, BindingResult result) {
 		
@@ -105,9 +108,16 @@ public class ProductRestController {
 		Validator.checkForErrors(result);
 		Validator.validateUser(username);
 		
-		logger.debug("User and entity are valid, updating product #" + productId + " in the database");
+		productRepository.findByOwnerNameAndId(username, productId)
+				.orElseThrow(() -> {
+					logger.error("ProductNotFoundException has been thrown: product #" + productId +
+							" not found in " + username + "'s products");
+					return new ProductNotFoundException(productId, username);
+				});
+		
+		logger.debug("Username, product ID and entity are valid, updating product #" + productId + " in the database");
 		input.setId(productId);
-		productRepository.save(input);
+		productRepository.save(Product.from(productId, userRepository.findByName(username).get(), input));
 		
 		return ResponseEntity.ok().build();
 	}

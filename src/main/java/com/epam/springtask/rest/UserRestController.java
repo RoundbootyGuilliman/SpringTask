@@ -3,6 +3,7 @@ package com.epam.springtask.rest;
 import com.epam.springtask.dao.UserRepository;
 import com.epam.springtask.entity.User;
 import com.epam.springtask.util.Validator;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.net.URI;
-import org.slf4j.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -37,7 +37,7 @@ public class UserRestController {
 	}
 	
 	private static Resource<User> toResource(User user) {
-		logger.trace("Turning \"" + user.getName() + "\" user into resource with static toResource method");
+		logger.trace("Wrapping \"" + user.getName() + "\" user in Resource and adding links");
 		return new Resource<>(user,
 				linkTo(methodOn(ProductRestController.class).getProductsByUser(user.getName())).withRel("products"),
 				linkTo(methodOn(UserRestController.class).getUserByUsername(user.getName())).withSelfRel());

@@ -1,7 +1,6 @@
 package com.epam.springtask.security;
 
 import com.epam.springtask.dao.UserRepository;
-import com.epam.springtask.entity.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

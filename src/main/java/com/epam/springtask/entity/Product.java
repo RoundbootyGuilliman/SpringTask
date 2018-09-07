@@ -1,6 +1,5 @@
 package com.epam.springtask.entity;
 
-import com.epam.springtask.app.Application;
 import com.epam.springtask.validation.ValidProductName;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.slf4j.Logger;
@@ -37,6 +36,13 @@ public class Product {
 	public static Product from(User owner, Product product) {
 		logger.trace("Creating Product instance via static method with " + product.getName() + " as name and " + owner.getName() + " as owner");
 		return new Product(product.name, owner);
+	}
+	
+	public static Product from(int id, User owner, Product product) {
+		logger.trace("Creating Product instance via static method with " + product.getName() + " as name and " + owner.getName() + " as owner");
+		Product newProduct = new Product(product.name, owner);
+		newProduct.setId(id);
+		return newProduct;
 	}
 	
 	public int getId() {
