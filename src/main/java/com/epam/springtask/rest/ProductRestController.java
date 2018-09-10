@@ -3,6 +3,7 @@ package com.epam.springtask.rest;
 import com.epam.springtask.dao.ProductRepository;
 import com.epam.springtask.dao.UserRepository;
 import com.epam.springtask.entity.Product;
+import com.epam.springtask.entity.User;
 import com.epam.springtask.exception.ProductNotFoundException;
 import com.epam.springtask.util.Validator;
 import org.slf4j.Logger;
@@ -13,12 +14,18 @@ import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jms.core.JmsTemplate;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.parameters.P;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.net.URI;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
@@ -45,10 +52,11 @@ public class ProductRestController {
 		return new Resource<>(product,
 				linkTo(methodOn(UserRestController.class).getUserByUsername(product.getOwner().getName())).withRel("user"),
 				linkTo(methodOn(ProductRestController.class).getProductsByUser(product.getOwner().getName())).withRel("products"),
-				linkTo(methodOn(ProductRestController.class).getProductByUserAndId(product.getOwner().getName(), product.getId())).withSelfRel());
+				linkTo(methodOn(ProductRestController.class).getProductById(product.getId())).withSelfRel());
 	}
 	
-	@GetMapping(value = "/{username}", produces = MediaTypes.HAL_JSON_VALUE)
+	@GetMapping(value = "/{username}/all", produces = MediaTypes.HAL_JSON_VALUE)
+	@PreAuthorize("hasPermission(#username, '')")
 	public Resources<Resource<Product>> getProductsByUser(@PathVariable String username) {
 		
 		logger.debug("GET request to /products/" + username);
@@ -61,66 +69,51 @@ public class ProductRestController {
 				.collect(Collectors.toList()));
 	}
 	
-	@GetMapping(value = "/{username}/{productId}", produces = MediaTypes.HAL_JSON_VALUE)
-	public Resource<Product> getProductByUserAndId(@PathVariable String username, @PathVariable int productId) {
+	@GetMapping(value = "/{productId}", produces = MediaTypes.HAL_JSON_VALUE)
+	public Resource<Product> getProductById(@PathVariable int productId) {
 		
-		logger.debug("GET request to /products/" + username + "/" + productId);
-		Validator.validateUser(username);
+		logger.debug("GET request to /products/" + productId);
 		
 		logger.debug("User is valid, returning corresponding resource with product #" + productId);
 		return productRepository
-				.findByOwnerNameAndId(username, productId)
+				.findById(productId)
 				.map(ProductRestController::toResource)
 				.orElseThrow(() -> {
 					logger.error("ProductNotFoundException has been thrown: product #" + productId +
-							" not found in " + username + "'s products");
-					return new ProductNotFoundException(productId, username);
+							" not found");
+					return new ProductNotFoundException(productId);
 				});
 	}
 	
-	@PostMapping("/{username}")
-	public ResponseEntity<?> postProduct(@PathVariable String username,
-										 @Valid @RequestBody Product input, BindingResult result) {
+	@PostMapping
+	public ResponseEntity<?> postProduct(@Valid @RequestBody Product input, BindingResult result) {
 		
-		logger.debug("POST request to /products/" + username);
+		logger.debug("POST request to /products");
 		Validator.checkForErrors(result);
-		Validator.validateUser(username);
 		
-		logger.debug("User and entity are valid, sending a JMS message with the new product \"" + input.getName() + "\" for persisting");
-		jmsTemplate.convertAndSend("mailbox",
-				Product.from(userRepository.findByName(username).get(), input), message -> {
-					message.setJMSType("Product");
-					return message;
-				});
+		String username = SecurityContextHolder.getContext().getAuthentication().getName();
+		
+		logger.debug("Entity is valid, sending a JMS message with the new product \"" + input.getName() + "\" for persisting");
+		jmsTemplate.convertAndSend("productQueue",
+				Product.from(userRepository.findByName(username).get(), input));
 		
 		return ResponseEntity.ok().build();
 	}
 	
-	@PutMapping("/{username}/{productId}")
-	@PreAuthorize("hasPermission(#username, '')")
-	public ResponseEntity<?> putProduct(@PathVariable String username, @PathVariable int productId,
-										@Valid @RequestBody Product input, BindingResult result) {
+	@PutMapping("/{productId}")
+	@PreAuthorize("hasPermission(#productId, '', '')")
+	public ResponseEntity<?> putProduct(@PathVariable int productId, @Valid @RequestBody Product input, BindingResult result) {
 		
-		logger.debug("PUT request to /products/" + username + "/" + productId);
+		logger.debug("PUT request to /products/" + productId);
 		Validator.checkForErrors(result);
-		Validator.validateUser(username);
 		
-		logger.debug("Checking if product #" + productId + " exists");
-		productRepository.findByOwnerNameAndId(username, productId)
-				.orElseThrow(() -> {
-					logger.error("ProductNotFoundException has been thrown: product #" + productId +
-							" not found in " + username + "'s products");
-					return new ProductNotFoundException(productId, username);
-				});
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		
 		logger.debug("Username, product ID and entity are valid, sending a JMS message with product #" + productId + " for updating");
 		input.setId(productId);
 		
-		jmsTemplate.convertAndSend("mailbox",
-				Product.from(productId, userRepository.findByName(username).get(), input), message -> {
-			message.setJMSType("Product");
-			return message;
-		});
+		userRepository.findByName(auth.getName()).ifPresent(user -> jmsTemplate.convertAndSend("productQueue",
+				Product.from(productId, user, input)));
 		
 		return ResponseEntity.ok().build();
 	}

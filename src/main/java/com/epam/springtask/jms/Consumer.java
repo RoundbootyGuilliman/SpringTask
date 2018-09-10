@@ -21,13 +21,13 @@ public class Consumer {
 	@Autowired
 	private ProductRepository productRepository;
 	
-	@JmsListener(destination = "mailbox", containerFactory = "myFactory", selector = "JMSType = 'User'")
+	@JmsListener(destination = "userQueue", containerFactory = "myFactory")
 	public void receiveUser(User user) {
 		logger.debug("Message with \"" + user.getName() + "\" user received");
 		userRepository.save(user);
 	}
 	
-	@JmsListener(destination = "mailbox", containerFactory = "myFactory", selector = "JMSType = 'Product'")
+	@JmsListener(destination = "productQueue", containerFactory = "myFactory")
 	public void receiveProduct(Product product) {
 		logger.debug("Message with \"" + product.getName() + "\" product received");
 		productRepository.save(product);

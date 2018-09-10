@@ -9,5 +9,4 @@ import java.util.Optional;
 public interface ProductRepository extends CrudRepository<Product, Integer> {
 	
 	List<Product> findByOwnerName(String ownerName);
-	Optional<Product> findByOwnerNameAndId(String ownerName, Integer id);
 }

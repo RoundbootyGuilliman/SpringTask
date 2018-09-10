@@ -1,12 +1,25 @@
 package com.epam.springtask.security;
 
+import com.epam.springtask.dao.ProductRepository;
+import com.epam.springtask.exception.ProductNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.stereotype.Component;
 
 import java.io.Serializable;
 
+@Component
 public class CustomPermissionEvaluator implements PermissionEvaluator {
+	
+	private static final Logger logger = LoggerFactory.getLogger(CustomPermissionEvaluator.class);
+	
+	@Autowired
+	private ProductRepository productRepository;
+	
 	
 	@Override
 	public boolean hasPermission(Authentication auth, Object targetDomainObject, Object permission) {
@@ -15,7 +28,8 @@ public class CustomPermissionEvaluator implements PermissionEvaluator {
 			return false;
 		}
 		
-		return hasPrivilege(auth, targetDomainObject.toString());
+		return auth.getName().contains(targetDomainObject.toString())
+				|| auth.getAuthorities().contains(new SimpleGrantedAuthority("ADMIN"));
 	}
 	
 	@Override
@@ -25,12 +39,12 @@ public class CustomPermissionEvaluator implements PermissionEvaluator {
 			return false;
 		}
 		
-		return hasPrivilege(auth, targetType);
-	}
-	
-	private boolean hasPrivilege(Authentication auth, String name) {
+		int id = (int)targetId;
 		
-		return auth.getName().contains(name) || auth.getAuthorities().contains(new SimpleGrantedAuthority("ADMIN"));
-		
+		return productRepository.findById(id).map(product -> product.getOwner().getName().equals(auth.getName())
+				|| auth.getAuthorities().contains(new SimpleGrantedAuthority("ADMIN"))).orElseThrow(() -> {
+			logger.error("ProductNotFoundException has been thrown: product #" + id + " not found");
+			return new ProductNotFoundException(id);
+		});
 	}
 }

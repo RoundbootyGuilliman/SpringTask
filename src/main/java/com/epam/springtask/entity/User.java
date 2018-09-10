@@ -26,7 +26,7 @@ public class User {
 	@ValidUsername(message = "{valid.username}")
 	private String name;
 	
-	@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+	//@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 	@NotEmpty(message = "{valid.notEmpty}")
 	@ValidPassword(message = "{valid.password}")
 	private String password;

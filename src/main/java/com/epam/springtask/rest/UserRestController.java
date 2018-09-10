@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
@@ -45,10 +44,11 @@ public class UserRestController {
 	public Resources<Resource<User>> getAllUsers() {
 		
 		logger.debug("GET request to /users, returning all corresponding resources");
-		return new Resources<>(StreamSupport.stream(userRepository
-				.findAll().spliterator(), false)
-				.map(UserRestController::toResource)
-				.collect(Collectors.toList()));
+		
+		return new Resources<>(
+				userRepository.findAll().stream()
+						.map(UserRestController::toResource)
+						.collect(Collectors.toList()));
 	}
 	
 	@GetMapping(value = "/{username}", produces = MediaTypes.HAL_JSON_VALUE)
@@ -71,10 +71,7 @@ public class UserRestController {
 		Validator.validateUniqueness(input.getName());
 		
 		logger.debug("Username and entity are valid, sending a JMS message with the new user \"" + input.getName() + "\" for persisting");
-		jmsTemplate.convertAndSend("mailbox", input, message -> {
-			message.setJMSType("User");
-			return message;
-		});
+		jmsTemplate.convertAndSend("userQueue", input);
 		
 		return ResponseEntity.ok().build();
 	}
@@ -89,10 +86,7 @@ public class UserRestController {
 		logger.debug("Username and entity are valid, sending a JMS message with the user \"" + username + "\" for updating");
 		input.setId(userRepository.findByName(username).get().getId());
 		
-		jmsTemplate.convertAndSend("mailbox", input, message -> {
-			message.setJMSType("User");
-			return message;
-		});
+		jmsTemplate.convertAndSend("userQueue", input);
 		
 		return ResponseEntity.ok().build();
 	}
